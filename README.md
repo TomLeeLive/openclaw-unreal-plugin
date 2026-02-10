@@ -234,15 +234,34 @@ metadata:
 
 2. **프로젝트 다시 열기** - Unreal이 플러그인을 새로 빌드합니다.
 
-### UE 5.7+ 호환성
+### UE 5.7 Compatibility (v0.9.3+)
 
-이 플러그인은 UE 5.7에서 테스트되었습니다. 다른 버전에서 컴파일 오류 발생 시:
+**v0.9.3 업데이트:** UE 5.7 API 변경 사항에 대한 완전한 호환성 수정 완료.
 
-| 오류 | 해결 방법 |
-|------|----------|
-| `PlayInEditor` not found | `GEditor->Exec(World, TEXT("PIE"))` 사용 |
-| `SendRegister` undeclared | 헤더에 선언 추가 필요 |
-| Missing headers | `UnrealEdEngine.h`, `UnrealEdGlobals.h` include |
+| 수정된 이슈 | 해결 방법 |
+|------------|----------|
+| `PlayInEditor` 메서드 제거됨 | `StartPlayInEditorSession()` 사용으로 변경 |
+| `SendRegister` 선언 누락 | 헤더에 `void SendRegister()` 선언 추가 |
+| `HandleRegisterResponse` 선언 누락 | 헤더에 선언 추가 |
+
+**UE 5.0 ~ 5.6 사용자:** 이전 버전에서는 API 호환성 문제가 있을 수 있습니다. v0.9.3부터 UE 5.7+ 권장.
+
+### macOS Gatekeeper: "node" Blocked
+
+macOS에서 Gateway 시작 시 `node`가 차단되는 경우:
+
+**방법 1: System Settings에서 허용**
+1. System Settings → Privacy & Security
+2. 아래로 스크롤 → "node" 차단 메시지 찾기
+3. "Allow Anyway" 클릭
+4. Gateway 다시 시작: `openclaw gateway restart`
+
+**방법 2: 터미널에서 quarantine 속성 제거**
+```bash
+xattr -d com.apple.quarantine ~/.nvm/versions/node/v24.13.0/bin/node
+```
+
+> **Note:** Node.js 경로가 다를 수 있습니다. `which node`로 확인하세요.
 
 ### Plugin not loading
 - Check Output Log for errors
