@@ -6,6 +6,16 @@ AI 지원 Unreal Engine 개발. 에디터 제어, Actor 조작, 입력 시뮬레
 [![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.x-blue)](https://www.unrealengine.com/)
 [![Discord](https://img.shields.io/discord/1234567890?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.com/invite/clawd)
 
+## ⚠️ 면책 조항
+
+이 소프트웨어는 **베타** 버전입니다. 사용에 따른 책임은 본인에게 있습니다.
+
+- 사용 전 항상 프로젝트를 백업하세요
+- 별도의 테스트 프로젝트에서 먼저 테스트하세요
+- 저작자는 데이터 손실이나 프로젝트 손상에 대해 책임지지 않습니다
+
+전체 조항은 [LICENSE](LICENSE)를 참조하세요.
+
 ## 기능
 
 - 🎮 **에디터 제어** - PIE 시작/중지, 일시정지/재개

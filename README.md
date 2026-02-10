@@ -6,6 +6,16 @@ AI-assisted Unreal Engine development. Control the editor, manipulate actors, si
 [![Unreal Engine](https://img.shields.io/badge/Unreal%20Engine-5.x-blue)](https://www.unrealengine.com/)
 [![Discord](https://img.shields.io/discord/1234567890?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.com/invite/clawd)
 
+## ⚠️ Disclaimer
+
+This software is in **beta**. Use at your own risk.
+
+- Always backup your project before using
+- Test in a separate project first
+- The authors are not responsible for any data loss or project corruption
+
+See [LICENSE](LICENSE) for full terms.
+
 ## Features
 
 - 🎮 **Editor Control** - Start/stop PIE, pause/resume
