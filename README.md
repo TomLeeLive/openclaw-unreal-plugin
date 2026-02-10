@@ -222,6 +222,28 @@ metadata:
 
 ## Troubleshooting
 
+### Compilation Error: "could not be compiled"
+
+프로젝트 열 때 컴파일 오류가 발생하면:
+
+1. **Binaries/Intermediate 삭제**
+   ```bash
+   rm -rf YourProject/Plugins/OpenClaw/Binaries
+   rm -rf YourProject/Plugins/OpenClaw/Intermediate
+   ```
+
+2. **프로젝트 다시 열기** - Unreal이 플러그인을 새로 빌드합니다.
+
+### UE 5.7+ 호환성
+
+이 플러그인은 UE 5.7에서 테스트되었습니다. 다른 버전에서 컴파일 오류 발생 시:
+
+| 오류 | 해결 방법 |
+|------|----------|
+| `PlayInEditor` not found | `GEditor->Exec(World, TEXT("PIE"))` 사용 |
+| `SendRegister` undeclared | 헤더에 선언 추가 필요 |
+| Missing headers | `UnrealEdEngine.h`, `UnrealEdGlobals.h` include |
+
 ### Plugin not loading
 - Check Output Log for errors
 - Verify plugin is in `Plugins/OpenClaw/` folder
@@ -229,7 +251,7 @@ metadata:
 
 ### Not connecting to gateway
 - Verify gateway is running: `openclaw gateway status`
-- Check firewall allows port 27742
+- Check firewall allows port 18789 (default)
 - Look for `[OpenClaw]` messages in Output Log
 
 ### Tools not executing

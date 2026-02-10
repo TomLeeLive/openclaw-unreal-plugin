@@ -85,8 +85,14 @@ private:
 	/** Poll for commands */
 	void Poll();
 	
+	/** Send registration request */
+	void SendRegister();
+	
 	/** Send heartbeat */
 	void SendHeartbeat();
+	
+	/** Handle registration response */
+	void HandleRegisterResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccess);
 	
 	/** Handle poll response */
 	void HandlePollResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccess);

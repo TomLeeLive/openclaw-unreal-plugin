@@ -7,6 +7,8 @@
 #include "Engine/Level.h"
 #include "EngineUtils.h"
 #include "Editor.h"
+#include "Editor/UnrealEdEngine.h"
+#include "UnrealEdGlobals.h"
 #include "EditorModeManager.h"
 #include "LevelEditor.h"
 #include "FileHelpers.h"
@@ -618,7 +620,8 @@ TSharedPtr<FJsonObject> FOpenClawTools::Editor_Play(const TSharedPtr<FJsonObject
 	{
 		if (!GEditor->PlayWorld)
 		{
-			GEditor->PlayInEditor(GetEditorWorld(), false);
+			// Use console command to start PIE
+			GEditor->Exec(GetEditorWorld(), TEXT("PIE"));
 			return MakeSuccessResult(TEXT("Started play mode"));
 		}
 		else
