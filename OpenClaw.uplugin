@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.9.0",
+	"FriendlyName": "OpenClaw",
+	"Description": "OpenClaw AI assistant integration for Unreal Engine. Control editor, manipulate actors, simulate input via AI.",
+	"Category": "Editor",
+	"CreatedBy": "OpenClaw",
+	"CreatedByURL": "https://github.com/openclaw/openclaw",
+	"DocsURL": "https://docs.openclaw.ai",
+	"MarketplaceURL": "",
+	"SupportURL": "https://discord.com/invite/clawd",
+	"CanContainContent": false,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "OpenClaw",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit"
+		}
+	]
+}

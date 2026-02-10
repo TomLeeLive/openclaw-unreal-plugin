@@ -1,0 +1,19 @@
+# Compiled files
+Binaries/
+Intermediate/
+DerivedDataCache/
+Build/
+
+# IDE files
+.vs/
+.vscode/
+*.xcworkspace/
+*.xcodeproj/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+Saved/
+*.log

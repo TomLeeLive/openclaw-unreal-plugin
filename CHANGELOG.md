@@ -1,0 +1,24 @@
+# Changelog
+
+All notable changes to OpenClaw Unreal Plugin will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.9.0] - 2026-02-11
+
+### Added
+- Initial release
+- Level tools: getCurrent, list, open, save
+- Actor tools: find, getAll, create, delete, getData, setProperty
+- Transform tools: get/set position, rotation, scale
+- Component tools: get, add, remove
+- Editor tools: play, stop, pause, resume, getState
+- Debug tools: hierarchy, screenshot, log
+- Input simulation: key, mouse, axis
+- Asset tools: list, import
+- Console tools: execute, getLogs
+- Blueprint tools: list, open
+- HTTP polling connection to OpenClaw Gateway
+- Auto-reconnect on connection loss
+- Window menu status indicator
