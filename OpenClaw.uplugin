@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
 	"Version": 1,
-	"VersionName": "0.9.3",
+	"VersionName": "0.9.4",
 	"FriendlyName": "OpenClaw",
 	"Description": "OpenClaw AI assistant integration for Unreal Engine. Control editor, manipulate actors, simulate input via AI.",
 	"Category": "Editor",
