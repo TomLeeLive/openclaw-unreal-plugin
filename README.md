@@ -198,6 +198,28 @@ cp -r openclaw-unreal-plugin YourProject/Plugins/OpenClaw
 # Mac: Open with Xcode, build
 ```
 
+## 🔐 Security: Model Invocation Setting
+
+When publishing to ClawHub or installing as a skill, you can configure `disableModelInvocation` in the skill metadata:
+
+| Setting | AI Auto-Invoke | User Explicit Request |
+|---------|---------------|----------------------|
+| `false` (default) | ✅ Allowed | ✅ Allowed |
+| `true` | ❌ Blocked | ✅ Allowed |
+
+### Recommendation for Unreal Plugin: **`true`**
+
+**Reason:** During Unreal development, it's useful for AI to autonomously perform supporting tasks like checking actor hierarchy, taking screenshots, and inspecting components.
+
+**When to use `true`:** For sensitive tools (payments, deletions, message sending, etc.)
+
+```yaml
+# Example skill metadata
+metadata:
+  openclaw:
+    disableModelInvocation: true  # Recommended for Unreal plugin
+```
+
 ## Troubleshooting
 
 ### Plugin not loading

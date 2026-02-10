@@ -165,6 +165,28 @@ AI: [debug.screenshot 실행]
 - [테스트 가이드](Documentation~/TESTING_KO.md)
 - [기여 가이드](Documentation~/CONTRIBUTING_KO.md)
 
+## 🔐 보안: 모델 호출 설정
+
+ClawHub에 퍼블리시하거나 스킬로 설치할 때, 스킬 메타데이터에서 `disableModelInvocation`을 설정할 수 있습니다:
+
+| 설정 | AI 자동 호출 | 사용자 명시적 요청 |
+|------|-------------|------------------|
+| `false` (기본값) | ✅ 허용 | ✅ 허용 |
+| `true` | ❌ 차단 | ✅ 허용 |
+
+### Unreal 플러그인 권장: **`true`**
+
+**이유:** Unreal 작업 중 AI가 자율적으로 Actor 계층 확인, 스크린샷, 컴포넌트 검사 등 보조 작업을 수행하는 것이 유용함.
+
+**`true` 사용 시기:** 민감한 도구 (결제, 삭제, 메시지 전송 등)에 적합
+
+```yaml
+# 스킬 메타데이터 예시
+metadata:
+  openclaw:
+    disableModelInvocation: true  # Unreal 플러그인 권장값
+```
+
 ## 문제 해결
 
 ### 플러그인이 로드되지 않음
