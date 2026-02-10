@@ -47,7 +47,7 @@ cp -r openclaw-unreal-plugin YourProject/Plugins/OpenClaw
 ```json
 {
   "host": "127.0.0.1",
-  "port": 27742,
+  "port": 18789,
   "autoConnect": true,
   "secret": "optional-secret-key"
 }
@@ -153,17 +153,50 @@ AI: [debug.screenshot 실행]
     스크린샷 저장: Saved/Screenshots/screenshot_20260211_141500.png
 ```
 
+## 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Unreal Editor                         │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │              OpenClaw Plugin                     │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────┐  │    │
+│  │  │ Connection  │  │   Tools     │  │  Input  │  │    │
+│  │  │  Manager    │  │  Handler    │  │ Simulate│  │    │
+│  │  └──────┬──────┘  └──────┬──────┘  └────┬────┘  │    │
+│  └─────────┼────────────────┼──────────────┼───────┘    │
+└────────────┼────────────────┼──────────────┼────────────┘
+             │                │              │
+             ▼ HTTP Poll      │              │
+┌────────────────────────────────────────────────────────┐
+│                  OpenClaw Gateway                       │
+└────────────────────────────────────────────────────────┘
+             ▲
+             │ AI 요청
+┌────────────────────────────────────────────────────────┐
+│                    AI 어시스턴트                         │
+└────────────────────────────────────────────────────────┘
+```
+
 ## 요구 사항
 
 - Unreal Engine 5.0 이상
 - Windows, macOS, 또는 Linux
 - OpenClaw Gateway 실행 중
 
-## 문서
+## 소스에서 빌드
 
-- [개발 가이드](Documentation~/DEVELOPMENT_KO.md)
-- [테스트 가이드](Documentation~/TESTING_KO.md)
-- [기여 가이드](Documentation~/CONTRIBUTING_KO.md)
+```bash
+# 리포지토리 클론
+git clone https://github.com/openclaw/openclaw-unreal-plugin
+
+# 프로젝트에 복사
+cp -r openclaw-unreal-plugin YourProject/Plugins/OpenClaw
+
+# 프로젝트 파일 재생성
+# Windows: .uproject 우클릭 → Generate Visual Studio files
+# Mac: Xcode로 열고 빌드
+```
 
 ## 🔐 보안: 모델 호출 설정
 
@@ -244,6 +277,19 @@ xattr -d com.apple.quarantine ~/.nvm/versions/node/v24.13.0/bin/node
 - 연결 확인 (Window → OpenClaw Status)
 - Output Log에서 도구 실행 오류 확인
 - 에디터가 바쁜 상태가 아닌지 확인
+
+## 기여하기
+
+1. 리포지토리 포크
+2. 기능 브랜치 생성
+3. 변경사항 작성
+4. Pull Request 제출
+
+## 문서
+
+- [개발 가이드](Documentation~/DEVELOPMENT_KO.md)
+- [테스트 가이드](Documentation~/TESTING_KO.md)
+- [기여 가이드](Documentation~/CONTRIBUTING_KO.md)
 
 ## 지원
 
