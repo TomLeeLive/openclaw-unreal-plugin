@@ -11,6 +11,7 @@
 #include "Misc/Paths.h"
 #include "HAL/PlatformFilemanager.h"
 #include "Async/Async.h"
+#include "Misc/App.h"
 
 DEFINE_LOG_CATEGORY(LogOpenClaw);
 
@@ -18,7 +19,7 @@ FOpenClawConnectionManager* FOpenClawConnectionManager::Instance = nullptr;
 
 FOpenClawConnectionManager::FOpenClawConnectionManager()
 	: GatewayHost(TEXT("127.0.0.1"))
-	, GatewayPort(27742)
+	, GatewayPort(18789)  // OpenClaw Gateway default port
 	, bAutoConnect(true)
 {
 }
@@ -38,7 +39,7 @@ FOpenClawConnectionManager& FOpenClawConnectionManager::Get()
 
 void FOpenClawConnectionManager::Initialize()
 {
-	UE_LOG(LogOpenClaw, Log, TEXT("Initializing connection manager..."));
+	UE_LOG(LogOpenClaw, Log, TEXT("Initializing OpenClaw connection manager..."));
 	
 	LoadConfig();
 	
@@ -50,7 +51,7 @@ void FOpenClawConnectionManager::Initialize()
 
 void FOpenClawConnectionManager::Shutdown()
 {
-	UE_LOG(LogOpenClaw, Log, TEXT("Shutting down connection manager..."));
+	UE_LOG(LogOpenClaw, Log, TEXT("Shutting down OpenClaw connection manager..."));
 	
 	Disconnect();
 	
@@ -105,7 +106,7 @@ void FOpenClawConnectionManager::LoadConfig()
 	}
 	else
 	{
-		UE_LOG(LogOpenClaw, Log, TEXT("Using default config (no config file found)"));
+		UE_LOG(LogOpenClaw, Log, TEXT("Using default config (Gateway: %s:%d)"), *GatewayHost, GatewayPort);
 	}
 }
 
@@ -118,14 +119,10 @@ void FOpenClawConnectionManager::Connect()
 	
 	SetState(EOpenClawConnectionState::Connecting);
 	
-	// Generate session ID
-	SessionId = FString::Printf(TEXT("unreal_%lld_%s"), 
-		FDateTime::Now().ToUnixTimestamp(),
-		*FGuid::NewGuid().ToString().Left(8).ToLower());
+	UE_LOG(LogOpenClaw, Log, TEXT("Connecting to OpenClaw Gateway at %s:%d..."), *GatewayHost, GatewayPort);
 	
-	UE_LOG(LogOpenClaw, Log, TEXT("Connecting with session ID: %s"), *SessionId);
-	
-	StartPolling();
+	// Register with the Gateway
+	SendRegister();
 }
 
 void FOpenClawConnectionManager::Disconnect()
@@ -139,7 +136,78 @@ void FOpenClawConnectionManager::Disconnect()
 	SessionId.Empty();
 	SetState(EOpenClawConnectionState::Disconnected);
 	
-	UE_LOG(LogOpenClaw, Log, TEXT("Disconnected"));
+	UE_LOG(LogOpenClaw, Log, TEXT("Disconnected from OpenClaw Gateway"));
+}
+
+void FOpenClawConnectionManager::SendRegister()
+{
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(BuildUrl(TEXT("/unreal/register")));
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	
+	// Get project name from project settings
+	FString ProjectName = FApp::GetProjectName();
+	if (ProjectName.IsEmpty())
+	{
+		ProjectName = TEXT("UnrealProject");
+	}
+	
+	// Get engine version
+	FString EngineVersion = FString::Printf(TEXT("%d.%d"), ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION);
+	
+	// Build registration body
+	TSharedPtr<FJsonObject> Body = MakeShareable(new FJsonObject());
+	Body->SetStringField(TEXT("project"), ProjectName);
+	Body->SetStringField(TEXT("version"), EngineVersion);
+	Body->SetStringField(TEXT("platform"), TEXT("UnrealEditor"));
+	Body->SetNumberField(TEXT("tools"), FOpenClawTools::GetToolCount());
+	
+	FString BodyString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
+	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
+	
+	Request->SetContentAsString(BodyString);
+	Request->OnProcessRequestComplete().BindRaw(this, &FOpenClawConnectionManager::HandleRegisterResponse);
+	Request->ProcessRequest();
+}
+
+void FOpenClawConnectionManager::HandleRegisterResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccess)
+{
+	if (!bSuccess || !Response.IsValid())
+	{
+		UE_LOG(LogOpenClaw, Warning, TEXT("Failed to connect to OpenClaw Gateway"));
+		SetState(EOpenClawConnectionState::Reconnecting);
+		// Will retry on next tick cycle
+		return;
+	}
+	
+	int32 ResponseCode = Response->GetResponseCode();
+	
+	if (ResponseCode == 200)
+	{
+		// Parse response to get session ID
+		FString ResponseBody = Response->GetContentAsString();
+		TSharedPtr<FJsonObject> JsonObject;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseBody);
+		
+		if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
+		{
+			if (JsonObject->HasField(TEXT("sessionId")))
+			{
+				SessionId = JsonObject->GetStringField(TEXT("sessionId"));
+				UE_LOG(LogOpenClaw, Log, TEXT("Registered with session ID: %s"), *SessionId);
+				
+				SetState(EOpenClawConnectionState::Connected);
+				StartPolling();
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogOpenClaw, Warning, TEXT("Registration failed with code: %d"), ResponseCode);
+		SetState(EOpenClawConnectionState::Error);
+	}
 }
 
 void FOpenClawConnectionManager::StartPolling()
@@ -148,7 +216,7 @@ void FOpenClawConnectionManager::StartPolling()
 	TimeSinceLastPoll = PollInterval; // Trigger immediate poll
 	TimeSinceLastHeartbeat = 0.0f;
 	
-	UE_LOG(LogOpenClaw, Log, TEXT("Started polling"));
+	UE_LOG(LogOpenClaw, Log, TEXT("Started polling for commands"));
 }
 
 void FOpenClawConnectionManager::StopPolling()
@@ -161,6 +229,20 @@ void FOpenClawConnectionManager::StopPolling()
 
 void FOpenClawConnectionManager::Tick(float DeltaTime)
 {
+	// Handle reconnection attempts
+	if (State == EOpenClawConnectionState::Reconnecting)
+	{
+		static float ReconnectTimer = 0.0f;
+		ReconnectTimer += DeltaTime;
+		
+		if (ReconnectTimer >= 5.0f)
+		{
+			ReconnectTimer = 0.0f;
+			SendRegister();
+		}
+		return;
+	}
+	
 	if (!bIsPolling)
 	{
 		return;
@@ -191,7 +273,7 @@ TStatId FOpenClawConnectionManager::GetStatId() const
 
 void FOpenClawConnectionManager::Poll()
 {
-	if (bPollInFlight)
+	if (bPollInFlight || SessionId.IsEmpty())
 	{
 		return;
 	}
@@ -199,39 +281,8 @@ void FOpenClawConnectionManager::Poll()
 	bPollInFlight = true;
 	
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-	Request->SetURL(BuildUrl(TEXT("/poll")));
-	Request->SetVerb(TEXT("POST"));
-	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-	
-	// Build request body
-	TSharedPtr<FJsonObject> Body = MakeShareable(new FJsonObject());
-	Body->SetStringField(TEXT("sessionId"), SessionId);
-	Body->SetStringField(TEXT("engine"), TEXT("unreal"));
-	Body->SetStringField(TEXT("version"), TEXT("1.0.0"));
-	
-	// Add pending results
-	{
-		FScopeLock Lock(&PendingResultsLock);
-		if (PendingResults.Num() > 0)
-		{
-			TArray<TSharedPtr<FJsonValue>> ResultsArray;
-			for (const auto& Pair : PendingResults)
-			{
-				TSharedPtr<FJsonObject> ResultObj = MakeShareable(new FJsonObject());
-				ResultObj->SetStringField(TEXT("toolCallId"), Pair.Key);
-				ResultObj->SetObjectField(TEXT("result"), Pair.Value);
-				ResultsArray.Add(MakeShareable(new FJsonValueObject(ResultObj)));
-			}
-			Body->SetArrayField(TEXT("results"), ResultsArray);
-			PendingResults.Empty();
-		}
-	}
-	
-	FString BodyString;
-	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
-	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
-	
-	Request->SetContentAsString(BodyString);
+	Request->SetURL(BuildUrl(FString::Printf(TEXT("/unreal/poll?sessionId=%s"), *SessionId)));
+	Request->SetVerb(TEXT("GET"));
 	Request->OnProcessRequestComplete().BindRaw(this, &FOpenClawConnectionManager::HandlePollResponse);
 	Request->ProcessRequest();
 }
@@ -244,7 +295,10 @@ void FOpenClawConnectionManager::HandlePollResponse(FHttpRequestPtr Request, FHt
 	{
 		if (State == EOpenClawConnectionState::Connected)
 		{
+			UE_LOG(LogOpenClaw, Warning, TEXT("Lost connection to OpenClaw Gateway"));
 			SetState(EOpenClawConnectionState::Reconnecting);
+			// Try to re-register
+			SendRegister();
 		}
 		return;
 	}
@@ -253,39 +307,30 @@ void FOpenClawConnectionManager::HandlePollResponse(FHttpRequestPtr Request, FHt
 	
 	if (ResponseCode == 200)
 	{
-		if (State != EOpenClawConnectionState::Connected)
-		{
-			SetState(EOpenClawConnectionState::Connected);
-		}
-		
-		// Parse response
+		// Parse and process command
 		FString ResponseBody = Response->GetContentAsString();
-		TSharedPtr<FJsonObject> JsonObject;
-		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseBody);
 		
-		if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
+		if (!ResponseBody.IsEmpty())
 		{
-			// Process commands
-			if (JsonObject->HasField(TEXT("commands")))
+			TSharedPtr<FJsonObject> JsonObject;
+			TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseBody);
+			
+			if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
 			{
-				const TArray<TSharedPtr<FJsonValue>>& Commands = JsonObject->GetArrayField(TEXT("commands"));
-				for (const auto& CommandValue : Commands)
-				{
-					if (CommandValue->Type == EJson::Object)
-					{
-						ProcessCommand(CommandValue->AsObject());
-					}
-				}
+				ProcessCommand(JsonObject);
 			}
 		}
 	}
+	else if (ResponseCode == 204)
+	{
+		// No pending commands - this is normal
+	}
 	else if (ResponseCode == 404)
 	{
-		// Gateway not found, keep trying
-		if (State == EOpenClawConnectionState::Connected)
-		{
-			SetState(EOpenClawConnectionState::Reconnecting);
-		}
+		// Session not found, need to re-register
+		UE_LOG(LogOpenClaw, Warning, TEXT("Session expired, re-registering..."));
+		SetState(EOpenClawConnectionState::Reconnecting);
+		SendRegister();
 	}
 	else
 	{
@@ -295,8 +340,13 @@ void FOpenClawConnectionManager::HandlePollResponse(FHttpRequestPtr Request, FHt
 
 void FOpenClawConnectionManager::SendHeartbeat()
 {
+	if (SessionId.IsEmpty())
+	{
+		return;
+	}
+	
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
-	Request->SetURL(BuildUrl(TEXT("/heartbeat")));
+	Request->SetURL(BuildUrl(TEXT("/unreal/heartbeat")));
 	Request->SetVerb(TEXT("POST"));
 	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
 	
@@ -329,27 +379,57 @@ void FOpenClawConnectionManager::ProcessCommand(const TSharedPtr<FJsonObject>& C
 	
 	FString ToolName = Command->GetStringField(TEXT("tool"));
 	FString ToolCallId = Command->GetStringField(TEXT("toolCallId"));
-	TSharedPtr<FJsonObject> Params = Command->GetObjectField(TEXT("params"));
+	TSharedPtr<FJsonObject> Arguments = Command->GetObjectField(TEXT("arguments"));
 	
 	UE_LOG(LogOpenClaw, Log, TEXT("Received command: %s (id: %s)"), *ToolName, *ToolCallId);
 	
 	// Execute on game thread
-	ExecuteToolOnGameThread(ToolName, ToolCallId, Params);
+	ExecuteToolOnGameThread(ToolName, ToolCallId, Arguments);
 }
 
-void FOpenClawConnectionManager::ExecuteToolOnGameThread(const FString& ToolName, const FString& ToolCallId, const TSharedPtr<FJsonObject>& Params)
+void FOpenClawConnectionManager::ExecuteToolOnGameThread(const FString& ToolName, const FString& ToolCallId, const TSharedPtr<FJsonObject>& Arguments)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, ToolName, ToolCallId, Params]()
+	AsyncTask(ENamedThreads::GameThread, [this, ToolName, ToolCallId, Arguments]()
 	{
-		TSharedPtr<FJsonObject> Result = FOpenClawTools::ExecuteTool(ToolName, Params);
+		TSharedPtr<FJsonObject> Result = FOpenClawTools::ExecuteTool(ToolName, Arguments);
 		SendToolResult(ToolCallId, Result);
 	});
 }
 
 void FOpenClawConnectionManager::SendToolResult(const FString& ToolCallId, const TSharedPtr<FJsonObject>& Result)
 {
-	FScopeLock Lock(&PendingResultsLock);
-	PendingResults.Add(TPair<FString, TSharedPtr<FJsonObject>>(ToolCallId, Result));
+	if (SessionId.IsEmpty())
+	{
+		return;
+	}
+	
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(BuildUrl(TEXT("/unreal/result")));
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	
+	TSharedPtr<FJsonObject> Body = MakeShareable(new FJsonObject());
+	Body->SetStringField(TEXT("sessionId"), SessionId);
+	Body->SetStringField(TEXT("toolCallId"), ToolCallId);
+	Body->SetObjectField(TEXT("result"), Result);
+	
+	FString BodyString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyString);
+	FJsonSerializer::Serialize(Body.ToSharedRef(), Writer);
+	
+	Request->SetContentAsString(BodyString);
+	Request->OnProcessRequestComplete().BindLambda([ToolCallId](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccess)
+	{
+		if (bSuccess && Response.IsValid() && Response->GetResponseCode() == 200)
+		{
+			UE_LOG(LogOpenClaw, Log, TEXT("Result sent for: %s"), *ToolCallId);
+		}
+		else
+		{
+			UE_LOG(LogOpenClaw, Warning, TEXT("Failed to send result for: %s"), *ToolCallId);
+		}
+	});
+	Request->ProcessRequest();
 }
 
 void FOpenClawConnectionManager::SetState(EOpenClawConnectionState NewState)
@@ -368,7 +448,7 @@ void FOpenClawConnectionManager::SetState(EOpenClawConnectionState NewState)
 			case EOpenClawConnectionState::Error: StateString = TEXT("Error"); break;
 		}
 		
-		UE_LOG(LogOpenClaw, Log, TEXT("State changed to: %s"), *StateString);
+		UE_LOG(LogOpenClaw, Log, TEXT("Connection state: %s"), *StateString);
 		
 		OnStateChanged.Broadcast(State);
 	}
@@ -376,5 +456,5 @@ void FOpenClawConnectionManager::SetState(EOpenClawConnectionState NewState)
 
 FString FOpenClawConnectionManager::BuildUrl(const FString& Endpoint) const
 {
-	return FString::Printf(TEXT("http://%s:%d/api/plugin%s"), *GatewayHost, GatewayPort, *Endpoint);
+	return FString::Printf(TEXT("http://%s:%d%s"), *GatewayHost, GatewayPort, *Endpoint);
 }

@@ -15,6 +15,9 @@ public:
 	/** Execute a tool by name */
 	static TSharedPtr<FJsonObject> ExecuteTool(const FString& ToolName, const TSharedPtr<FJsonObject>& Params);
 	
+	/** Get the total number of available tools */
+	static int32 GetToolCount();
+	
 private:
 	// Level tools
 	static TSharedPtr<FJsonObject> Level_GetCurrent(const TSharedPtr<FJsonObject>& Params);

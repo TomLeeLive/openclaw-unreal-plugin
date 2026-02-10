@@ -79,6 +79,13 @@ TSharedPtr<FJsonObject> FOpenClawTools::ExecuteTool(const FString& ToolName, con
 	return MakeErrorResult(FString::Printf(TEXT("Unknown tool: %s"), *ToolName));
 }
 
+int32 FOpenClawTools::GetToolCount()
+{
+	// Count of all available tools
+	// Level: 4, Actor: 6, Transform: 6, Component: 3, Editor: 5, Debug: 3, Input: 3, Asset: 2, Console: 2, Blueprint: 2
+	return 36;
+}
+
 // Helper functions
 TSharedPtr<FJsonObject> FOpenClawTools::MakeSuccessResult(const FString& Message)
 {

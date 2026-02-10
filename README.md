@@ -47,7 +47,7 @@ Create `openclaw.json` in your project root:
 ```json
 {
   "host": "127.0.0.1",
-  "port": 27742,
+  "port": 18789,
   "autoConnect": true,
   "secret": "optional-secret-key"
 }
