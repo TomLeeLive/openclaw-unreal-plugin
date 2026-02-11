@@ -2,6 +2,31 @@
 
 This guide explains how to set up the OpenClaw Unreal Plugin for different use cases.
 
+## 🤔 Which Mode Do I Need?
+
+| How You Use AI | Mode Needed | Why |
+|----------------|-------------|-----|
+| **Chat apps** (Telegram, Discord) | Mode A: Gateway | OpenClaw routes commands to Unreal |
+| **Claude Code** in terminal | Mode B: MCP | Direct connection needed |
+| **Both** | Hybrid | Best of both worlds |
+
+### If You Already Use OpenClaw...
+
+If you're chatting with an AI assistant through OpenClaw, **you don't need MCP setup** - the assistant already has Unreal tools via the Gateway!
+
+```
+You (Telegram) → OpenClaw Gateway → AI Assistant → unreal_execute tool → Unreal
+                                    ↑
+                            Already has access!
+```
+
+### When MCP is Useful
+
+MCP is useful when:
+1. **Using Claude Code directly** in terminal
+2. **Using Claude Desktop** app
+3. **Using Cursor** or other MCP-compatible editors
+
 ## 🅰️ Mode A: OpenClaw Gateway (Remote Access)
 
 **When to use:** When you want to develop games remotely via Telegram, Discord, or web.
