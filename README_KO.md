@@ -34,7 +34,7 @@ Claude Code/Desktop → MCP Server → Unreal Plugin
 - ✅ Claude Code, Cursor와 직접 연동
 - ✅ 로컬 개발 시 낮은 지연시간
 
-Claude Code 연동 상세는 [MCP~/README.md](MCP~/README.md) 참조.
+📖 **[Setup Guide](Documentation~/SETUP_GUIDE.md)** | **[셋업 가이드](Documentation~/SETUP_GUIDE_KO.md)**
 
 ## 기능
 
