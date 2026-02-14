@@ -2,6 +2,7 @@
 
 #include "SOpenClawPanel.h"
 #include "OpenClawConnectionManager.h"
+#include "OpenClawHttpServer.h"
 #include "OpenClawTools.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SSeparator.h"
@@ -464,9 +465,13 @@ FText SOpenClawPanel::GetMCPHostText() const
 
 FText SOpenClawPanel::GetMCPPortText() const
 {
+	if (FOpenClawHttpServer::Get().IsRunning())
+	{
+		return FText::FromString(FString::Printf(TEXT("%d (Direct)"), FOpenClawHttpServer::Get().GetPort()));
+	}
 	if (FOpenClawConnectionManager::Get().IsConnected())
 	{
-		return FText::FromString(TEXT("42424"));
+		return FText::FromString(FString::Printf(TEXT("%d (Gateway)"), 18789));
 	}
 	return FText::FromString(TEXT("—"));
 }

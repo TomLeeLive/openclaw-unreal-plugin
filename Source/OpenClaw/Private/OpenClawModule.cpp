@@ -2,6 +2,7 @@
 
 #include "OpenClawModule.h"
 #include "OpenClawConnectionManager.h"
+#include "OpenClawHttpServer.h"
 #include "OpenClawTools.h"
 #include "SOpenClawPanel.h"
 #include "ToolMenus.h"
@@ -19,8 +20,11 @@ void FOpenClawModule::StartupModule()
 {
 	UE_LOG(LogTemp, Log, TEXT("[OpenClaw] 🦞 Plugin starting..."));
 	
-	// Initialize connection manager
+	// Initialize connection manager (Mode A: Gateway)
 	FOpenClawConnectionManager::Get().Initialize();
+	
+	// Start embedded HTTP server (Mode B: MCP Direct)
+	FOpenClawHttpServer::Get().Start(27184);
 	
 	// Register tab spawner
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(OpenClawTabName,
@@ -43,6 +47,9 @@ void FOpenClawModule::ShutdownModule()
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(OpenClawTabName);
 	
 	UnregisterMenuExtension();
+	
+	// Stop embedded HTTP server
+	FOpenClawHttpServer::Get().Stop();
 	
 	// Shutdown connection manager
 	FOpenClawConnectionManager::Get().Shutdown();

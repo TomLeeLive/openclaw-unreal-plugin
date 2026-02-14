@@ -26,8 +26,11 @@ public class OpenClaw : ModuleRules
 				"Engine",
 				"InputCore",
 				"HTTP",
+				"HTTPServer",
 				"Json",
-				"JsonUtilities"
+				"JsonUtilities",
+				"Sockets",
+				"Networking"
 			}
 		);
 			
