@@ -327,17 +327,25 @@ TSharedPtr<FJsonObject> FOpenClawTools::Actor_Create(const TSharedPtr<FJsonObjec
 	}
 	
 	FString Type = Params->GetStringField(TEXT("type"));
+	FString ClassName = Params->GetStringField(TEXT("class"));
 	FString Name = Params->GetStringField(TEXT("name"));
 	
-	if (Type.IsEmpty())
-	{
-		Type = TEXT("Actor");
-	}
+	// Support both "type" and "class" parameters
+	if (Type.IsEmpty() && !ClassName.IsEmpty()) Type = ClassName;
+	if (Type.IsEmpty()) Type = TEXT("StaticMeshActor");
 	
 	FVector Location = FVector::ZeroVector;
+	// Support both flat (x,y,z) and nested (location.x) params
 	if (Params->HasField(TEXT("x"))) Location.X = Params->GetNumberField(TEXT("x"));
 	if (Params->HasField(TEXT("y"))) Location.Y = Params->GetNumberField(TEXT("y"));
 	if (Params->HasField(TEXT("z"))) Location.Z = Params->GetNumberField(TEXT("z"));
+	if (Params->HasField(TEXT("location")))
+	{
+		auto LocObj = Params->GetObjectField(TEXT("location"));
+		if (LocObj->HasField(TEXT("x"))) Location.X = LocObj->GetNumberField(TEXT("x"));
+		if (LocObj->HasField(TEXT("y"))) Location.Y = LocObj->GetNumberField(TEXT("y"));
+		if (LocObj->HasField(TEXT("z"))) Location.Z = LocObj->GetNumberField(TEXT("z"));
+	}
 	
 	AActor* NewActor = nullptr;
 	
@@ -353,6 +361,42 @@ TSharedPtr<FJsonObject> FOpenClawTools::Actor_Create(const TSharedPtr<FJsonObjec
 			}
 		}
 	}
+	else if (Type == TEXT("Sphere"))
+	{
+		NewActor = World->SpawnActor<AStaticMeshActor>(Location, FRotator::ZeroRotator);
+		if (AStaticMeshActor* SMAActor = Cast<AStaticMeshActor>(NewActor))
+		{
+			UStaticMesh* SphereMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere"));
+			if (SphereMesh && SMAActor->GetStaticMeshComponent())
+			{
+				SMAActor->GetStaticMeshComponent()->SetStaticMesh(SphereMesh);
+			}
+		}
+	}
+	else if (Type == TEXT("Cylinder"))
+	{
+		NewActor = World->SpawnActor<AStaticMeshActor>(Location, FRotator::ZeroRotator);
+		if (AStaticMeshActor* SMAActor = Cast<AStaticMeshActor>(NewActor))
+		{
+			UStaticMesh* CylinderMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+			if (CylinderMesh && SMAActor->GetStaticMeshComponent())
+			{
+				SMAActor->GetStaticMeshComponent()->SetStaticMesh(CylinderMesh);
+			}
+		}
+	}
+	else if (Type == TEXT("Cone"))
+	{
+		NewActor = World->SpawnActor<AStaticMeshActor>(Location, FRotator::ZeroRotator);
+		if (AStaticMeshActor* SMAActor = Cast<AStaticMeshActor>(NewActor))
+		{
+			UStaticMesh* ConeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cone.Cone"));
+			if (ConeMesh && SMAActor->GetStaticMeshComponent())
+			{
+				SMAActor->GetStaticMeshComponent()->SetStaticMesh(ConeMesh);
+			}
+		}
+	}
 	else if (Type == TEXT("PointLight"))
 	{
 		NewActor = World->SpawnActor<APointLight>(Location, FRotator::ZeroRotator);
@@ -363,8 +407,16 @@ TSharedPtr<FJsonObject> FOpenClawTools::Actor_Create(const TSharedPtr<FJsonObjec
 	}
 	else
 	{
-		// Generic actor
-		NewActor = World->SpawnActor<AActor>(AActor::StaticClass(), Location, FRotator::ZeroRotator);
+		// Default to StaticMeshActor with cube (ensures RootComponent exists)
+		NewActor = World->SpawnActor<AStaticMeshActor>(Location, FRotator::ZeroRotator);
+		if (AStaticMeshActor* SMAActor = Cast<AStaticMeshActor>(NewActor))
+		{
+			UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
+			if (CubeMesh && SMAActor->GetStaticMeshComponent())
+			{
+				SMAActor->GetStaticMeshComponent()->SetStaticMesh(CubeMesh);
+			}
+		}
 	}
 	
 	if (NewActor)
@@ -442,8 +494,57 @@ TSharedPtr<FJsonObject> FOpenClawTools::Actor_SetProperty(const TSharedPtr<FJson
 		return MakeErrorResult(FString::Printf(TEXT("Actor not found: %s"), *Name));
 	}
 	
-	// TODO: Implement property setting via reflection
-	return MakeErrorResult(TEXT("Property setting not yet implemented"));
+	FString Value = Params->GetStringField(TEXT("value"));
+	FString ComponentName = Params->GetStringField(TEXT("component"));
+	
+	// Try to find property on actor or its components
+	UObject* TargetObject = Actor;
+	if (!ComponentName.IsEmpty())
+	{
+		for (UActorComponent* Comp : Actor->GetComponents())
+		{
+			if (Comp && (Comp->GetName().Contains(ComponentName) || Comp->GetClass()->GetName().Contains(ComponentName)))
+			{
+				TargetObject = Comp;
+				break;
+			}
+		}
+	}
+	
+	FProperty* Prop = TargetObject->GetClass()->FindPropertyByName(FName(*Property));
+	if (!Prop)
+	{
+		// Search components if not found on actor directly
+		for (UActorComponent* Comp : Actor->GetComponents())
+		{
+			if (Comp)
+			{
+				Prop = Comp->GetClass()->FindPropertyByName(FName(*Property));
+				if (Prop)
+				{
+					TargetObject = Comp;
+					break;
+				}
+			}
+		}
+	}
+	
+	if (!Prop)
+	{
+		return MakeErrorResult(FString::Printf(TEXT("Property not found: %s"), *Property));
+	}
+	
+	// Use ImportText for type-safe property setting
+	void* PropAddr = Prop->ContainerPtrToValuePtr<void>(TargetObject);
+	if (Prop->ImportText_Direct(*Value, PropAddr, TargetObject, PPF_None))
+	{
+		// Notify property change
+		FPropertyChangedEvent ChangeEvent(Prop);
+		TargetObject->PostEditChangeProperty(ChangeEvent);
+		return MakeSuccessResult(FString::Printf(TEXT("Set %s = %s"), *Property, *Value));
+	}
+	
+	return MakeErrorResult(FString::Printf(TEXT("Failed to set property %s to %s"), *Property, *Value));
 }
 
 // Transform tools
@@ -573,7 +674,9 @@ TSharedPtr<FJsonObject> FOpenClawTools::Transform_SetScale(const TSharedPtr<FJso
 // Component tools
 TSharedPtr<FJsonObject> FOpenClawTools::Component_Get(const TSharedPtr<FJsonObject>& Params)
 {
+	// Support both "actor" and "name" parameter names
 	FString ActorName = Params->GetStringField(TEXT("actor"));
+	if (ActorName.IsEmpty()) ActorName = Params->GetStringField(TEXT("name"));
 	FString ComponentName = Params->GetStringField(TEXT("component"));
 	
 	AActor* Actor = FindActorByName(ActorName);
@@ -620,8 +723,10 @@ TSharedPtr<FJsonObject> FOpenClawTools::Editor_Play(const TSharedPtr<FJsonObject
 	{
 		if (!GEditor->PlayWorld)
 		{
-			// Use console command to start PIE
-			GEditor->Exec(GetEditorWorld(), TEXT("PIE"));
+			FRequestPlaySessionParams SessionParams;
+			SessionParams.WorldType = EPlaySessionWorldType::PlayInEditor;
+			SessionParams.DestinationSlateViewport = GEditor->GetActiveViewport();
+			GEditor->RequestPlaySession(SessionParams);
 			return MakeSuccessResult(TEXT("Started play mode"));
 		}
 		else
@@ -858,8 +963,38 @@ TSharedPtr<FJsonObject> FOpenClawTools::Console_Execute(const TSharedPtr<FJsonOb
 
 TSharedPtr<FJsonObject> FOpenClawTools::Console_GetLogs(const TSharedPtr<FJsonObject>& Params)
 {
-	// TODO: Implement log retrieval
-	return MakeErrorResult(TEXT("Log retrieval not yet implemented"));
+	int32 Count = Params->HasField(TEXT("count")) ? Params->GetIntegerField(TEXT("count")) : 50;
+	FString Filter = Params->HasField(TEXT("filter")) ? Params->GetStringField(TEXT("filter")) : TEXT("");
+	
+	TArray<TSharedPtr<FJsonValue>> LogsArray;
+	
+	if (GLog)
+	{
+		// Read from log file
+		FString LogPath = FPaths::ProjectLogDir() / FApp::GetProjectName() + TEXT(".log");
+		TArray<FString> Lines;
+		if (FFileHelper::LoadFileToStringArray(Lines, *LogPath))
+		{
+			int32 StartIdx = FMath::Max(0, Lines.Num() - Count);
+			for (int32 i = StartIdx; i < Lines.Num(); i++)
+			{
+				if (Filter.IsEmpty() || Lines[i].Contains(Filter))
+				{
+					TSharedPtr<FJsonObject> LogObj = MakeShareable(new FJsonObject());
+					LogObj->SetStringField(TEXT("message"), Lines[i]);
+					LogObj->SetNumberField(TEXT("line"), i + 1);
+					LogsArray.Add(MakeShareable(new FJsonValueObject(LogObj)));
+				}
+			}
+		}
+	}
+	
+	TSharedPtr<FJsonObject> Result = MakeShareable(new FJsonObject());
+	Result->SetBoolField(TEXT("success"), true);
+	Result->SetNumberField(TEXT("count"), LogsArray.Num());
+	Result->SetArrayField(TEXT("logs"), LogsArray);
+	
+	return Result;
 }
 
 // Blueprint tools
