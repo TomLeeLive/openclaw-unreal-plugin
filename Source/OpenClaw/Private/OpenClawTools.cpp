@@ -743,7 +743,10 @@ TSharedPtr<FJsonObject> FOpenClawTools::Editor_Stop(const TSharedPtr<FJsonObject
 	{
 		if (GEditor->PlayWorld)
 		{
-			GEditor->EndPlayMap();
+			// Set bRequestEndPlayMapQueued flag to defer PIE teardown to next tick.
+			// Direct EndPlayMap() from within AsyncTask causes TaskGraph 
+			// recursion guard crash (audio device teardown re-enters named thread).
+			GEditor->RequestEndPlayMap();
 			return MakeSuccessResult(TEXT("Stopped play mode"));
 		}
 		else
