@@ -725,7 +725,6 @@ TSharedPtr<FJsonObject> FOpenClawTools::Editor_Play(const TSharedPtr<FJsonObject
 		{
 			FRequestPlaySessionParams SessionParams;
 			SessionParams.WorldType = EPlaySessionWorldType::PlayInEditor;
-			SessionParams.DestinationSlateViewport = GEditor->GetActiveViewport();
 			GEditor->RequestPlaySession(SessionParams);
 			return MakeSuccessResult(TEXT("Started play mode"));
 		}
@@ -968,20 +967,19 @@ TSharedPtr<FJsonObject> FOpenClawTools::Console_GetLogs(const TSharedPtr<FJsonOb
 	
 	TArray<TSharedPtr<FJsonValue>> LogsArray;
 	
-	if (GLog)
 	{
 		// Read from log file
-		FString LogPath = FPaths::ProjectLogDir() / FApp::GetProjectName() + TEXT(".log");
-		TArray<FString> Lines;
-		if (FFileHelper::LoadFileToStringArray(Lines, *LogPath))
+		FString ProjectLogPath = FPaths::ProjectLogDir() / FApp::GetProjectName() + TEXT(".log");
+		TArray<FString> LogLines;
+		if (FFileHelper::LoadFileToStringArray(LogLines, *ProjectLogPath))
 		{
-			int32 StartIdx = FMath::Max(0, Lines.Num() - Count);
-			for (int32 i = StartIdx; i < Lines.Num(); i++)
+			int32 StartIdx = FMath::Max(0, LogLines.Num() - Count);
+			for (int32 i = StartIdx; i < LogLines.Num(); i++)
 			{
-				if (Filter.IsEmpty() || Lines[i].Contains(Filter))
+				if (Filter.IsEmpty() || LogLines[i].Contains(Filter))
 				{
 					TSharedPtr<FJsonObject> LogObj = MakeShareable(new FJsonObject());
-					LogObj->SetStringField(TEXT("message"), Lines[i]);
+					LogObj->SetStringField(TEXT("message"), LogLines[i]);
 					LogObj->SetNumberField(TEXT("line"), i + 1);
 					LogsArray.Add(MakeShareable(new FJsonValueObject(LogObj)));
 				}
