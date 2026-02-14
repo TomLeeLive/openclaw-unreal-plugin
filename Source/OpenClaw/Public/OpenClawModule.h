@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
+#include "Widgets/Docking/SDockTab.h"
 
 class FOpenClawModule : public IModuleInterface
 {
@@ -19,6 +20,9 @@ public:
 	static bool IsAvailable();
 
 private:
+	/** Spawn the OpenClaw panel tab */
+	TSharedRef<SDockTab> SpawnOpenClawTab(const FSpawnTabArgs& SpawnTabArgs);
+
 	void RegisterMenuExtension();
 	void UnregisterMenuExtension();
 	

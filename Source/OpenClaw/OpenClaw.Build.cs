@@ -42,7 +42,8 @@ public class OpenClaw : ModuleRules
 				"Projects",
 				"ToolMenus",
 				"EditorSubsystem",
-				"ImageWrapper"
+				"ImageWrapper",
+				"WorkspaceMenuStructure"
 			}
 		);
 		

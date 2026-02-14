@@ -3,10 +3,17 @@
 #include "OpenClawModule.h"
 #include "OpenClawConnectionManager.h"
 #include "OpenClawTools.h"
+#include "SOpenClawPanel.h"
 #include "ToolMenus.h"
 #include "LevelEditor.h"
+#include "Widgets/Docking/SDockTab.h"
+#include "Framework/Docking/TabManager.h"
+#include "WorkspaceMenuStructure.h"
+#include "WorkspaceMenuStructureModule.h"
 
 #define LOCTEXT_NAMESPACE "FOpenClawModule"
+
+static const FName OpenClawTabName("OpenClawPanel");
 
 void FOpenClawModule::StartupModule()
 {
@@ -14,6 +21,14 @@ void FOpenClawModule::StartupModule()
 	
 	// Initialize connection manager
 	FOpenClawConnectionManager::Get().Initialize();
+	
+	// Register tab spawner
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(OpenClawTabName,
+		FOnSpawnTab::CreateRaw(this, &FOpenClawModule::SpawnOpenClawTab))
+		.SetDisplayName(LOCTEXT("TabTitle", "OpenClaw"))
+		.SetTooltipText(LOCTEXT("TabTooltip", "OpenClaw AI connection status and controls"))
+		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports"))
+		.SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
 	
 	// Register menu extension
 	RegisterMenuExtension();
@@ -24,6 +39,8 @@ void FOpenClawModule::StartupModule()
 void FOpenClawModule::ShutdownModule()
 {
 	UE_LOG(LogTemp, Log, TEXT("[OpenClaw] 🦞 Plugin shutting down..."));
+	
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(OpenClawTabName);
 	
 	UnregisterMenuExtension();
 	
@@ -41,6 +58,16 @@ FOpenClawModule& FOpenClawModule::Get()
 bool FOpenClawModule::IsAvailable()
 {
 	return FModuleManager::Get().IsModuleLoaded("OpenClaw");
+}
+
+TSharedRef<SDockTab> FOpenClawModule::SpawnOpenClawTab(const FSpawnTabArgs& SpawnTabArgs)
+{
+	return SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
+		.Label(LOCTEXT("TabLabel", "OpenClaw"))
+		[
+			SNew(SOpenClawPanel)
+		];
 }
 
 void FOpenClawModule::RegisterMenuExtension()
@@ -61,19 +88,16 @@ void FOpenClawModule::RegisterMenuExtension()
 	if (WindowMenu)
 	{
 		FToolMenuSection& Section = WindowMenu->FindOrAddSection("OpenClaw");
+		Section.Label = LOCTEXT("OpenClawMenuSection", "OpenClaw");
+		
 		Section.AddMenuEntry(
-			"OpenClawStatus",
-			LOCTEXT("OpenClawStatusLabel", "OpenClaw Status"),
-			LOCTEXT("OpenClawStatusTooltip", "Show OpenClaw connection status"),
+			"OpenClawPanel",
+			LOCTEXT("OpenClawPanelLabel", "OpenClaw Panel"),
+			LOCTEXT("OpenClawPanelTooltip", "Open the OpenClaw connection panel"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateLambda([]()
 			{
-				FOpenClawConnectionManager& Manager = FOpenClawConnectionManager::Get();
-				FString Status = Manager.IsConnected() 
-					? TEXT("Connected to OpenClaw Gateway")
-					: TEXT("Disconnected from OpenClaw Gateway");
-				
-				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Status));
+				FGlobalTabmanager::Get()->TryInvokeTab(OpenClawTabName);
 			}))
 		);
 	}
@@ -81,10 +105,7 @@ void FOpenClawModule::RegisterMenuExtension()
 
 void FOpenClawModule::UnregisterMenuExtension()
 {
-	if (UToolMenus* ToolMenus = UToolMenus::Get())
-	{
-		ToolMenus->RemoveMenu("LevelEditor.MainMenu.Window");
-	}
+	// ToolMenus cleanup is handled automatically
 }
 
 #undef LOCTEXT_NAMESPACE
