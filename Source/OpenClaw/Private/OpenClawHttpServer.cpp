@@ -35,7 +35,7 @@ void FOpenClawHttpServer::Start(int32 Port)
 	
 	ServerPort = Port;
 	
-	FHttpServerModule& HttpServerModule = FHttpServerModule::GetModule();
+	FHttpServerModule& HttpServerModule = FHttpServerModule::Get();
 	TSharedPtr<IHttpRouter> Router = HttpServerModule.GetHttpRouter(ServerPort);
 	
 	if (!Router.IsValid())
@@ -71,7 +71,7 @@ void FOpenClawHttpServer::Stop()
 		return;
 	}
 	
-	FHttpServerModule& HttpServerModule = FHttpServerModule::GetModule();
+	FHttpServerModule& HttpServerModule = FHttpServerModule::Get();
 	TSharedPtr<IHttpRouter> Router = HttpServerModule.GetHttpRouter(ServerPort);
 	
 	if (Router.IsValid())
