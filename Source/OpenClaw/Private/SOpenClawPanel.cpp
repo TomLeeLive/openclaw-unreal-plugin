@@ -46,7 +46,7 @@ void SOpenClawPanel::Construct(const FArguments& InArgs)
 				.Padding(8, 0, 0, 0)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("Title", "OpenClaw"))
+					.Text(LOCTEXT("Title", "OpenClaw Unreal Plugin"))
 					.Font(FCoreStyle::GetDefaultFontStyle("Bold", 16))
 				]
 			]
@@ -173,6 +173,92 @@ void SOpenClawPanel::Construct(const FArguments& InArgs)
 				[
 					SNew(STextBlock)
 					.Text(this, &SOpenClawPanel::GetUptimeText)
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Gray))
+				]
+			]
+
+			// MCP Section
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 12, 0, 4)
+			[
+				SNew(SSeparator)
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 4)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("MCPHeader", "MCP Connection"))
+				.Font(FCoreStyle::GetDefaultFontStyle("Bold", 11))
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 4)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("MCPHostLabel", "Host: "))
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Gray))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(this, &SOpenClawPanel::GetMCPHostText)
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Gray))
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 2)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("MCPPortLabel", "Port: "))
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Gray))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(this, &SOpenClawPanel::GetMCPPortText)
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Gray))
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 2)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("MCPProtocolLabel", "Protocol: "))
+					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
+					.ColorAndOpacity(FSlateColor(FLinearColor::Gray))
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("MCPProtocol", "HTTP Polling (SSE)"))
 					.Font(FCoreStyle::GetDefaultFontStyle("Regular", 10))
 					.ColorAndOpacity(FSlateColor(FLinearColor::Gray))
 				]
@@ -365,6 +451,24 @@ FText SOpenClawPanel::GetUptimeText() const
 		return FText::FromString(FString::Printf(TEXT("%dm %ds"), Minutes, Seconds));
 	}
 	return FText::FromString(FString::Printf(TEXT("%ds"), Seconds));
+}
+
+FText SOpenClawPanel::GetMCPHostText() const
+{
+	if (FOpenClawConnectionManager::Get().IsConnected())
+	{
+		return FText::FromString(TEXT("localhost"));
+	}
+	return FText::FromString(TEXT("—"));
+}
+
+FText SOpenClawPanel::GetMCPPortText() const
+{
+	if (FOpenClawConnectionManager::Get().IsConnected())
+	{
+		return FText::FromString(TEXT("42424"));
+	}
+	return FText::FromString(TEXT("—"));
 }
 
 void SOpenClawPanel::OnConnectionStateChanged(EOpenClawConnectionState NewState)

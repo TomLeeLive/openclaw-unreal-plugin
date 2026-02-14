@@ -25,8 +25,8 @@ void FOpenClawModule::StartupModule()
 	// Register tab spawner
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(OpenClawTabName,
 		FOnSpawnTab::CreateRaw(this, &FOpenClawModule::SpawnOpenClawTab))
-		.SetDisplayName(LOCTEXT("TabTitle", "OpenClaw"))
-		.SetTooltipText(LOCTEXT("TabTooltip", "OpenClaw AI connection status and controls"))
+		.SetDisplayName(LOCTEXT("TabTitle", "OpenClaw Unreal Plugin"))
+		.SetTooltipText(LOCTEXT("TabTooltip", "OpenClaw Unreal Plugin — connection status, MCP, and controls"))
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Viewports"))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetToolsCategory());
 	
@@ -64,7 +64,7 @@ TSharedRef<SDockTab> FOpenClawModule::SpawnOpenClawTab(const FSpawnTabArgs& Spaw
 {
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
-		.Label(LOCTEXT("TabLabel", "OpenClaw"))
+		.Label(LOCTEXT("TabLabel", "OpenClaw Unreal Plugin"))
 		[
 			SNew(SOpenClawPanel)
 		];
@@ -88,12 +88,12 @@ void FOpenClawModule::RegisterMenuExtension()
 	if (WindowMenu)
 	{
 		FToolMenuSection& Section = WindowMenu->FindOrAddSection("OpenClaw");
-		Section.Label = LOCTEXT("OpenClawMenuSection", "OpenClaw");
+		Section.Label = LOCTEXT("OpenClawMenuSection", "OpenClaw Unreal Plugin");
 		
 		Section.AddMenuEntry(
 			"OpenClawPanel",
-			LOCTEXT("OpenClawPanelLabel", "OpenClaw Panel"),
-			LOCTEXT("OpenClawPanelTooltip", "Open the OpenClaw connection panel"),
+			LOCTEXT("OpenClawPanelLabel", "OpenClaw Unreal Plugin"),
+			LOCTEXT("OpenClawPanelTooltip", "Open the OpenClaw Unreal Plugin panel"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateLambda([]()
 			{

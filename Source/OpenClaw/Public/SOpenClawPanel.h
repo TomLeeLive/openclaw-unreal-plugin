@@ -35,6 +35,8 @@ private:
 	FText GetGatewayText() const;
 	FText GetToolCountText() const;
 	FText GetUptimeText() const;
+	FText GetMCPHostText() const;
+	FText GetMCPPortText() const;
 
 	/** State changed delegate */
 	void OnConnectionStateChanged(EOpenClawConnectionState NewState);
