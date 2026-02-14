@@ -978,10 +978,10 @@ TSharedPtr<FJsonObject> FOpenClawTools::Console_GetLogs(const TSharedPtr<FJsonOb
 			{
 				if (Filter.IsEmpty() || LogLines[i].Contains(Filter))
 				{
-					TSharedPtr<FJsonObject> LogObj = MakeShareable(new FJsonObject());
-					LogObj->SetStringField(TEXT("message"), LogLines[i]);
-					LogObj->SetNumberField(TEXT("line"), i + 1);
-					LogsArray.Add(MakeShareable(new FJsonValueObject(LogObj)));
+					TSharedPtr<FJsonObject> LogEntry = MakeShareable(new FJsonObject());
+					LogEntry->SetStringField(TEXT("message"), LogLines[i]);
+					LogEntry->SetNumberField(TEXT("line"), i + 1);
+					LogsArray.Add(MakeShareable(new FJsonValueObject(LogEntry)));
 				}
 			}
 		}
