@@ -93,7 +93,8 @@ bool FOpenClawHttpServer::HandleToolRequest(const FHttpServerRequest& Request, c
 	const TArray<uint8>& Body = Request.Body;
 	if (Body.Num() > 0)
 	{
-		BodyStr = FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(Body.GetData())));
+		FUTF8ToTCHAR Converter(reinterpret_cast<const ANSICHAR*>(Body.GetData()), Body.Num());
+		BodyStr = FString(Converter.Length(), Converter.Get());
 	}
 	
 	TSharedPtr<FJsonObject> JsonBody;
