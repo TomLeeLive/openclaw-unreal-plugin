@@ -96,6 +96,43 @@
 | `blueprint.list` | List blueprints in the project |
 | `blueprint.open` | Open a blueprint in the editor |
 
+## Connection Modes
+
+### Mode A: OpenClaw Gateway (Remote Access)
+
+```
+Telegram/Discord/Web → OpenClaw Gateway → HTTP Polling → Unreal Plugin
+```
+
+Works automatically when the Gateway is running. No extra setup needed.
+
+### Mode B: MCP Direct (Claude Code / Cursor)
+
+```
+Claude Code / Cursor → MCP Server (stdio) → HTTP → Unreal Plugin (port 27184)
+```
+
+The plugin runs an embedded HTTP server on port **27184**. Use the included MCP bridge:
+
+**Claude Code:**
+```bash
+claude mcp add unreal -- node /path/to/Plugins/OpenClaw/MCP~/index.js
+```
+
+**Cursor:** Add to `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "unreal": {
+      "command": "node",
+      "args": ["/path/to/Plugins/OpenClaw/MCP~/index.js"]
+    }
+  }
+}
+```
+
+Both modes run simultaneously — you can use Gateway and MCP Direct at the same time.
+
 ## Editor Panel
 
 Access via **Window → OpenClaw Unreal Plugin**. The dockable panel provides:
