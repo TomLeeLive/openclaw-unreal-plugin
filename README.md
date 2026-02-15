@@ -2,7 +2,7 @@
 
 > MCP (Model Context Protocol) bridge for Unreal Engine — lets AI agents control the Unreal Editor in real time.
 
-**Version 1.2.1**
+**Version 1.3.0**
 
 ## Features
 

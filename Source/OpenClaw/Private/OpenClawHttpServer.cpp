@@ -147,7 +147,7 @@ bool FOpenClawHttpServer::HandleStatusRequest(const FHttpServerRequest& Request,
 	TSharedPtr<FJsonObject> Status = MakeShareable(new FJsonObject());
 	Status->SetBoolField(TEXT("success"), true);
 	Status->SetStringField(TEXT("plugin"), TEXT("OpenClaw Unreal Plugin"));
-	Status->SetStringField(TEXT("version"), TEXT("1.2.1"));
+	Status->SetStringField(TEXT("version"), TEXT("1.3.0"));
 	Status->SetBoolField(TEXT("mcpDirect"), true);
 	Status->SetNumberField(TEXT("port"), ServerPort);
 	Status->SetBoolField(TEXT("gatewayConnected"), FOpenClawConnectionManager::Get().IsConnected());
