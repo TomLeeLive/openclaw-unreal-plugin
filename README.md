@@ -163,3 +163,8 @@ Then restart the Unreal Editor — it will recompile the plugin from source.
 ## License
 
 MIT
+
+## License
+
+This project has been licensed under [Apache-2.0](LICENSE) since its initial release.
+Copyright 2026 Tom Lee (TomLeeLive)
