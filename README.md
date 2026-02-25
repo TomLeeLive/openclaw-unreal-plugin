@@ -160,9 +160,13 @@ Then restart the Unreal Editor — it will recompile the plugin from source.
 2. Check the Editor Panel log for error messages
 3. Verify firewall isn't blocking the MCP port
 
-## License
+## 🎭 AI Personas for Game Development
 
-MIT
+Want your AI agent to have a consistent personality while developing your game? [ClawSouls](https://clawsouls.ai) provides open-source persona packages (Soul Spec) that work with OpenClaw and other AI frameworks. Give your coding assistant a specialized game dev personality, or create custom NPC behavior profiles.
+
+- Browse community souls: [clawsouls.ai](https://clawsouls.ai)
+- Soul Spec standard: [soulspec.org](https://soulspec.org)
+- Quick start: `npx clawsouls init my-game-dev --spec 0.4`
 
 ## License
 
