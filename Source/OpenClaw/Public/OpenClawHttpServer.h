@@ -43,12 +43,20 @@ private:
 	
 	/** Handle GET /status */
 	bool HandleStatusRequest(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
-	
+
 	/** Send JSON response */
 	void SendJsonResponse(const FHttpResultCallback& OnComplete, int32 Code, const TSharedPtr<FJsonObject>& Json);
-	
+
+	/**
+	 * Request guard: rejects browser-originated requests (Origin header present)
+	 * and, when OPENCLAW_BRIDGE_TOKEN is set, requests without a matching
+	 * X-OpenClaw-Token header. Returns false after sending the error response.
+	 */
+	bool PassesRequestGuard(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete);
+
 	bool bIsRunning = false;
 	int32 ServerPort = 27184;
+	FString AuthToken;
 	FHttpRouteHandle ToolRouteHandle;
 	FHttpRouteHandle StatusRouteHandle;
 	

@@ -111,10 +111,17 @@ class UnrealMCPServer {
   
   async executeUnrealTool(tool, args) {
     const url = `${UNREAL_URL}/tool`;
-    
+
+    // Optional shared-secret auth — set the same OPENCLAW_BRIDGE_TOKEN for the
+    // Unreal editor process and this MCP server to enable it.
+    const headers = { 'Content-Type': 'application/json' };
+    if (process.env.OPENCLAW_BRIDGE_TOKEN) {
+      headers['X-OpenClaw-Token'] = process.env.OPENCLAW_BRIDGE_TOKEN;
+    }
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ tool, arguments: args })
     });
     

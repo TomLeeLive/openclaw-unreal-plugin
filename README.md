@@ -172,3 +172,16 @@ Want your AI agent to have a consistent personality while developing your game? 
 
 This project has been licensed under [Apache-2.0](LICENSE) since its initial release.
 Copyright 2026 Tom Lee (TomLeeLive)
+
+## Securing the MCP Direct Server
+
+Two additional hardening layers (v1.3.1+):
+
+- **Browser-origin rejection** — requests carrying an `Origin` header are refused (403). Local MCP clients never send one; web pages probing the local port do.
+- **Optional shared-secret auth** — set the same environment variable for the Unreal Editor process and your MCP client, then restart both:
+
+```bash
+export OPENCLAW_BRIDGE_TOKEN="some-long-random-string"
+```
+
+When set, every request must carry `X-OpenClaw-Token: <token>` (the bundled `MCP~/index.js` sends it automatically). Unset = no auth, matching previous behavior.

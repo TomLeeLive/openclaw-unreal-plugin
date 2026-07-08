@@ -34,7 +34,11 @@ void FOpenClawHttpServer::Start(int32 Port)
 	}
 	
 	ServerPort = Port;
-	
+
+	// Optional shared-secret auth — set OPENCLAW_BRIDGE_TOKEN for the editor
+	// process and the MCP bridge to enable it. Empty = no auth (backward compatible).
+	AuthToken = FPlatformMisc::GetEnvironmentVariable(TEXT("OPENCLAW_BRIDGE_TOKEN"));
+
 	FHttpServerModule& HttpServerModule = FHttpServerModule::Get();
 	TSharedPtr<IHttpRouter> Router = HttpServerModule.GetHttpRouter(ServerPort);
 	
@@ -86,8 +90,53 @@ void FOpenClawHttpServer::Stop()
 	UE_LOG(LogOpenClaw, Log, TEXT("MCP Direct HTTP server stopped"));
 }
 
+bool FOpenClawHttpServer::PassesRequestGuard(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete)
+{
+	// Case-insensitive header lookup (transport may preserve original casing)
+	FString OriginValue;
+	FString TokenValue;
+	for (const auto& Pair : Request.Headers)
+	{
+		if (Pair.Key.Equals(TEXT("Origin"), ESearchCase::IgnoreCase) && Pair.Value.Num() > 0)
+		{
+			OriginValue = Pair.Value[0];
+		}
+		else if (Pair.Key.Equals(TEXT("X-OpenClaw-Token"), ESearchCase::IgnoreCase) && Pair.Value.Num() > 0)
+		{
+			TokenValue = Pair.Value[0];
+		}
+	}
+
+	// Local MCP clients (Claude Code, Cursor) never send an Origin header —
+	// anything that does is a web page probing the local bridge (CSRF/XSS vector).
+	if (!OriginValue.IsEmpty())
+	{
+		TSharedPtr<FJsonObject> Error = MakeShareable(new FJsonObject());
+		Error->SetBoolField(TEXT("success"), false);
+		Error->SetStringField(TEXT("error"), TEXT("Browser-originated requests are not allowed"));
+		SendJsonResponse(OnComplete, 403, Error);
+		return false;
+	}
+
+	if (!AuthToken.IsEmpty() && TokenValue != AuthToken)
+	{
+		TSharedPtr<FJsonObject> Error = MakeShareable(new FJsonObject());
+		Error->SetBoolField(TEXT("success"), false);
+		Error->SetStringField(TEXT("error"), TEXT("Missing or invalid X-OpenClaw-Token"));
+		SendJsonResponse(OnComplete, 401, Error);
+		return false;
+	}
+
+	return true;
+}
+
 bool FOpenClawHttpServer::HandleToolRequest(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete)
 {
+	if (!PassesRequestGuard(Request, OnComplete))
+	{
+		return true;
+	}
+
 	// Parse body
 	FString BodyStr;
 	const TArray<uint8>& Body = Request.Body;
@@ -144,14 +193,20 @@ bool FOpenClawHttpServer::HandleToolRequest(const FHttpServerRequest& Request, c
 
 bool FOpenClawHttpServer::HandleStatusRequest(const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete)
 {
+	if (!PassesRequestGuard(Request, OnComplete))
+	{
+		return true;
+	}
+
 	TSharedPtr<FJsonObject> Status = MakeShareable(new FJsonObject());
 	Status->SetBoolField(TEXT("success"), true);
 	Status->SetStringField(TEXT("plugin"), TEXT("OpenClaw Unreal Plugin"));
-	Status->SetStringField(TEXT("version"), TEXT("1.3.0"));
+	Status->SetStringField(TEXT("version"), TEXT("1.3.1"));
 	Status->SetBoolField(TEXT("mcpDirect"), true);
 	Status->SetNumberField(TEXT("port"), ServerPort);
+	Status->SetStringField(TEXT("auth"), AuthToken.IsEmpty() ? TEXT("none") : TEXT("token"));
 	Status->SetBoolField(TEXT("gatewayConnected"), FOpenClawConnectionManager::Get().IsConnected());
-	
+
 	SendJsonResponse(OnComplete, 200, Status);
 	return true;
 }
